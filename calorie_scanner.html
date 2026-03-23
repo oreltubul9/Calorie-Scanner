@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>סורק קלוריות</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#22c55e;--green2:#16a34a;--green-light:#dcfce7;
+  --red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;
+  --bg:#f8fafc;--white:#fff;--gray:#64748b;--border:#e2e8f0;
+  --dark:#1e293b;--panel:#fff;
+  --header-h:60px;--nav-h:64px;
+}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--dark);
+  min-height:100vh;max-width:480px;margin:0 auto;position:relative;
+  padding-top:var(--header-h);padding-bottom:var(--nav-h)}
+
+/* ── HEADER ── */
+.app-header{position:fixed;top:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;height:var(--header-h);
+  background:var(--green2);color:#fff;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.app-header h1{font-size:1.1rem;font-weight:700}
+.daily-badge{background:rgba(255,255,255,.2);border-radius:20px;
+  padding:5px 12px;font-size:.82rem;font-weight:700;cursor:pointer;
+  border:1px solid rgba(255,255,255,.3)}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;height:var(--nav-h);
+  background:var(--white);border-top:1px solid var(--border);
+  display:flex;z-index:50}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;font-size:.72rem;color:var(--gray);cursor:pointer;
+  transition:color .15s;background:none;border:none;font-family:inherit}
+.nav-btn.active{color:var(--green2)}
+.nav-btn .icon{font-size:1.4rem}
+
+/* ── TABS ── */
+.tab{display:none;padding:16px;animation:fadeIn .25s ease}
+.tab.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── SCAN TAB ── */
+.scan-area{background:var(--dark);border-radius:16px;overflow:hidden;
+  position:relative;min-height:280px;display:flex;align-items:center;justify-content:center}
+#reader{width:100%!important}
+#reader video{border-radius:16px}
+/* Override html5-qrcode ugly default UI */
+#reader__scan_region{border:none!important}
+#reader__dashboard_section_swaplink{display:none!important}
+#reader__status_span{color:var(--green)!important;font-size:.8rem!important}
+.scan-placeholder{text-align:center;color:#94a3b8;padding:40px 20px}
+.scan-placeholder .icon{font-size:4rem;margin-bottom:12px;display:block}
+.scan-start-btn{width:100%;margin-top:14px}
+.manual-divider{display:flex;align-items:center;gap:10px;
+  margin:16px 0;color:var(--gray);font-size:.85rem}
+.manual-divider::before,.manual-divider::after{content:'';flex:1;border-top:1px solid var(--border)}
+
+/* ── SEARCH TAB ── */
+.search-bar{display:flex;gap:8px;margin-bottom:16px}
+.search-bar input{flex:1;padding:11px 14px;border:1.5px solid var(--border);
+  border-radius:10px;font-size:.95rem;font-family:inherit;outline:none;
+  direction:rtl;background:var(--white)}
+.search-bar input:focus{border-color:var(--green)}
+.section-label{font-size:.75rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--gray);margin-bottom:10px}
+
+/* ── FOOD CARD ── */
+.food-card{background:var(--white);border-radius:12px;
+  border:1px solid var(--border);padding:14px;margin-bottom:10px;
+  display:flex;gap:12px;align-items:center;cursor:pointer;
+  transition:border-color .15s,box-shadow .15s}
+.food-card:hover{border-color:var(--green);box-shadow:0 2px 10px rgba(34,197,94,.15)}
+.food-card-img{width:56px;height:56px;border-radius:8px;object-fit:cover;
+  background:#f1f5f9;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:1.8rem}
+.food-card-info{flex:1;min-width:0}
+.food-card-name{font-weight:600;font-size:.92rem;margin-bottom:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.food-card-brand{font-size:.78rem;color:var(--gray);margin-bottom:5px}
+.food-card-macros{display:flex;gap:6px;flex-wrap:wrap}
+.macro-chip{font-size:.72rem;padding:2px 8px;border-radius:10px;font-weight:600}
+.cal-chip{background:#fef2f2;color:#dc2626}
+.pro-chip{background:#eff6ff;color:#1d4ed8}
+.fat-chip{background:#fffbeb;color:#d97706}
+.carb-chip{background:#f0fdf4;color:#166534}
+.kcal-big{font-size:1rem;font-weight:800;flex-shrink:0}
+.kcal-green{color:var(--green2)}
+.kcal-yellow{color:var(--yellow)}
+.kcal-red{color:var(--red)}
+
+/* ── NUTRISCORE ── */
+.nutri-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.72rem;font-weight:700;color:#fff}
+.nutri-a{background:#038141}.nutri-b{background:#85bb2f}
+.nutri-c{background:#fecb02;color:#333}.nutri-d{background:#ee8100}.nutri-e{background:#e63e11}
+
+/* ── LOG TAB ── */
+.daily-summary{background:linear-gradient(135deg,var(--green2),#059669);
+  border-radius:14px;padding:18px;color:#fff;margin-bottom:16px;text-align:center}
+.daily-summary .big-cal{font-size:2.4rem;font-weight:800;line-height:1}
+.daily-summary .cal-label{font-size:.82rem;opacity:.85;margin-bottom:14px}
+.macro-row{display:flex;justify-content:space-around}
+.macro-col{text-align:center}
+.macro-col .val{font-size:1.1rem;font-weight:700}
+.macro-col .lbl{font-size:.72rem;opacity:.8}
+.log-item{background:var(--white);border-radius:10px;border:1px solid var(--border);
+  padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.log-item-emoji{font-size:1.6rem;width:36px;text-align:center}
+.log-item-info{flex:1}
+.log-item-name{font-weight:600;font-size:.88rem}
+.log-item-detail{font-size:.77rem;color:var(--gray);margin-top:2px}
+.log-item-cal{font-weight:800;font-size:.95rem;color:var(--dark)}
+.log-del{background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:1rem;padding:4px}
+.log-del:hover{color:var(--red)}
+.empty-log{text-align:center;padding:40px 20px;color:var(--gray)}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);
+  display:none;align-items:flex-end;justify-content:center;z-index:100}
+.modal-overlay.open{display:flex;animation:slideUp .3s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+.modal{background:var(--white);border-radius:20px 20px 0 0;padding:20px;
+  width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;
+  margin:0 auto 16px}
+.modal-img{width:100%;height:160px;object-fit:cover;border-radius:12px;margin-bottom:14px}
+.modal-img-placeholder{width:100%;height:120px;border-radius:12px;
+  background:#f1f5f9;display:flex;align-items:center;justify-content:center;
+  font-size:4rem;margin-bottom:14px}
+.modal-name{font-size:1.15rem;font-weight:700;margin-bottom:4px}
+.modal-brand{font-size:.85rem;color:var(--gray);margin-bottom:12px}
+.nutriments-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.nutri-card{background:var(--bg);border-radius:10px;padding:10px;text-align:center}
+.nutri-card .val{font-size:1.1rem;font-weight:700}
+.nutri-card .lbl{font-size:.72rem;color:var(--gray);margin-top:2px}
+.portion-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;
+  background:#f8fafc;border-radius:10px;padding:12px}
+.portion-row label{font-size:.88rem;font-weight:600;flex:1}
+.portion-row input{width:80px;padding:8px 10px;border:1.5px solid var(--border);
+  border-radius:8px;font-size:.95rem;text-align:center;direction:ltr}
+.portion-calc{font-size:.85rem;color:var(--green2);font-weight:700;text-align:center;margin-bottom:14px}
+
+/* ── BUTTONS ── */
+.btn{border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;
+  padding:11px 20px;transition:all .15s;font-family:inherit;width:100%}
+.btn-green{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff}
+.btn-green:hover{filter:brightness(1.08)}
+.btn-outline{background:var(--white);border:1.5px solid var(--border);color:var(--dark)}
+.btn-outline:hover{border-color:var(--green)}
+.btn-sm{padding:8px 16px;font-size:.82rem;width:auto}
+.btn-red{background:var(--red);color:#fff}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid #bbf7d0;
+  border-top-color:var(--green2);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  background:var(--dark);color:#fff;padding:10px 20px;border-radius:20px;
+  font-size:.85rem;z-index:200;animation:toastAnim 2.5s ease forwards}
+@keyframes toastAnim{0%{opacity:0;transform:translateX(-50%) translateY(10px)}
+  15%{opacity:1;transform:translateX(-50%) translateY(0)}
+  75%{opacity:1}100%{opacity:0}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <h1>🥗 סורק קלוריות</h1>
+  <div class="daily-badge" onclick="switchTab('log')">
+    <span id="header-cal">0</span> קק"ל היום
+  </div>
+</header>
+
+<!-- TABS -->
+<div id="tab-scan" class="tab active">
+  <div class="scan-area" id="scan-area">
+    <div class="scan-placeholder" id="scan-placeholder">
+      <span class="icon">📷</span>
+      <p style="font-size:.95rem;font-weight:600">סרוק ברקוד של מוצר</p>
+      <p style="font-size:.82rem;color:#94a3b8;margin-top:6px">פתח את המצלמה וכוון לברקוד</p>
+    </div>
+    <div id="reader" style="width:100%;display:none"></div>
+  </div>
+
+  <button class="btn btn-green scan-start-btn" id="scan-toggle-btn" onclick="toggleScanner()">
+    📷 פתח מצלמה לסריקה
+  </button>
+
+  <div class="manual-divider">או חפש ידנית</div>
+
+  <div class="search-bar">
+    <input type="text" id="scan-search" placeholder="חפש מוצר..." onkeydown="if(event.key==='Enter')doSearch('scan-search')"/>
+    <button class="btn btn-green btn-sm" onclick="doSearch('scan-search')">🔍</button>
+  </div>
+  <div id="scan-results"></div>
+</div>
+
+<div id="tab-search" class="tab">
+  <div class="search-bar">
+    <input type="text" id="main-search" placeholder="חפש אוכל בעברית או אנגלית..." onkeydown="if(event.key==='Enter')doSearch('main-search')"/>
+    <button class="btn btn-green btn-sm" onclick="doSearch('main-search')">🔍</button>
+  </div>
+
+  <p class="section-label">מוצרים נפוצים</p>
+  <div id="local-foods-list"></div>
+
+  <div id="main-search-results"></div>
+</div>
+
+<div id="tab-log" class="tab">
+  <div class="daily-summary">
+    <div class="big-cal" id="log-total-cal">0</div>
+    <div class="cal-label">קק"ל סה"כ היום</div>
+    <div class="macro-row">
+      <div class="macro-col"><div class="val" id="log-protein">0g</div><div class="lbl">חלבון</div></div>
+      <div class="macro-col"><div class="val" id="log-fat">0g</div><div class="lbl">שומן</div></div>
+      <div class="macro-col"><div class="val" id="log-carbs">0g</div><div class="lbl">פחמימות</div></div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <p class="section-label" style="margin:0">יומן אכילה</p>
+    <button class="btn btn-outline btn-sm" onclick="clearLog()">🗑 נקה הכל</button>
+  </div>
+  <div id="log-list"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-scan" onclick="switchTab('scan')">
+    <span class="icon">📷</span>סרוק
+  </button>
+  <button class="nav-btn" id="nav-search" onclick="switchTab('search')">
+    <span class="icon">🔍</span>חיפוש
+  </button>
+  <button class="nav-btn" id="nav-log" onclick="switchTab('log')">
+    <span class="icon">📋</span>יומן
+  </button>
+</nav>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div id="modal-img-wrap"></div>
+    <div class="modal-name" id="modal-name"></div>
+    <div class="modal-brand" id="modal-brand"></div>
+    <div class="nutriments-grid" id="modal-nutrients"></div>
+    <div class="portion-row">
+      <label>כמות (גרם):</label>
+      <input type="number" id="portion-input" value="100" min="1" max="2000" oninput="calcPortion()"/>
+    </div>
+    <div class="portion-calc" id="portion-result"></div>
+    <button class="btn btn-green" onclick="addToLog()">➕ הוסף ליומן</button>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal()">סגור</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  LOCAL FOOD DATABASE (per 100g)
+// ════════════════════════════════════════════════════════
+const LOCAL_DB = [
+  {id:'apple',name:'תפוח',emoji:'🍎',kcal:52,protein:0.3,fat:0.2,carbs:13.8},
+  {id:'banana',name:'בננה',emoji:'🍌',kcal:89,protein:1.1,fat:0.3,carbs:22.8},
+  {id:'orange',name:'תפוז',emoji:'🍊',kcal:47,protein:0.9,fat:0.1,carbs:11.8},
+  {id:'grapes',name:'ענבים',emoji:'🍇',kcal:67,protein:0.6,fat:0.4,carbs:17.2},
+  {id:'avocado',name:'אבוקדו',emoji:'🥑',kcal:160,protein:2,fat:14.7,carbs:8.5},
+  {id:'tomato',name:'עגבנייה',emoji:'🍅',kcal:18,protein:0.9,fat:0.2,carbs:3.9},
+  {id:'cucumber',name:'מלפפון',emoji:'🥒',kcal:15,protein:0.7,fat:0.1,carbs:3.6},
+  {id:'carrot',name:'גזר',emoji:'🥕',kcal:41,protein:0.9,fat:0.2,carbs:9.6},
+  {id:'potato',name:'תפוח אדמה',emoji:'🥔',kcal:77,protein:2,fat:0.1,carbs:17},
+  {id:'sweet_potato',name:'בטטה (מבושלת)',emoji:'🍠',kcal:90,protein:2,fat:0.1,carbs:21},
+  {id:'broccoli',name:'ברוקולי',emoji:'🥦',kcal:34,protein:2.8,fat:0.4,carbs:6.6},
+  {id:'spinach',name:'תרד',emoji:'🥬',kcal:23,protein:2.9,fat:0.4,carbs:3.6},
+  {id:'egg',name:'ביצה שלמה',emoji:'🥚',kcal:155,protein:12.6,fat:10.6,carbs:1.1},
+  {id:'chicken_breast',name:'חזה עוף (מבושל)',emoji:'🍗',kcal:165,protein:31,fat:3.6,carbs:0},
+  {id:'chicken_thigh',name:'שוק עוף (מבושל)',emoji:'🍖',kcal:209,protein:26,fat:11,carbs:0},
+  {id:'beef_lean',name:'בשר בקר רזה',emoji:'🥩',kcal:217,protein:26,fat:12,carbs:0},
+  {id:'salmon',name:'סלמון',emoji:'🐟',kcal:208,protein:20,fat:13,carbs:0},
+  {id:'tuna_can',name:'טונה (קופסה)',emoji:'🐠',kcal:116,protein:26,fat:1,carbs:0},
+  {id:'cottage',name:"קוטג' 5%",emoji:'🧀',kcal:87,protein:11,fat:5,carbs:3},
+  {id:'yogurt',name:'יוגורט 0%',emoji:'🥛',kcal:36,protein:5,fat:0.1,carbs:4.7},
+  {id:'white_cheese',name:'גבינה לבנה 5%',emoji:'🫙',kcal:69,protein:9.6,fat:3.3,carbs:3.1},
+  {id:'milk',name:'חלב 3%',emoji:'🥛',kcal:61,protein:3.2,fat:3.2,carbs:4.8},
+  {id:'rice',name:'אורז לבן (מבושל)',emoji:'🍚',kcal:130,protein:2.7,fat:0.3,carbs:28},
+  {id:'pasta',name:'פסטה (מבושלת)',emoji:'🍝',kcal:131,protein:5,fat:1.1,carbs:25},
+  {id:'white_bread',name:'לחם לבן',emoji:'🍞',kcal:265,protein:9,fat:3.2,carbs:49},
+  {id:'whole_bread',name:'לחם מחיטה מלאה',emoji:'🫓',kcal:247,protein:13,fat:4.2,carbs:41},
+  {id:'oatmeal',name:'קוואקר (יבש)',emoji:'🥣',kcal:389,protein:17,fat:7,carbs:66},
+  {id:'almonds',name:'שקדים',emoji:'🥜',kcal:579,protein:21,fat:50,carbs:22},
+  {id:'walnuts',name:'אגוזי מלך',emoji:'🫘',kcal:654,protein:15,fat:65,carbs:14},
+  {id:'hummus',name:'חומוס (מוכן)',emoji:'🥙',kcal:166,protein:7.9,fat:9.6,carbs:14},
+  {id:'lentils',name:'עדשים (מבושלות)',emoji:'🫘',kcal:116,protein:9,fat:0.4,carbs:20},
+  {id:'olive_oil',name:'שמן זית',emoji:'🫒',kcal:884,protein:0,fat:100,carbs:0},
+  {id:'dark_choc',name:'שוקולד מריר 70%',emoji:'🍫',kcal:546,protein:5,fat:31,carbs:60},
+  {id:'corn',name:'תירס (מבושל)',emoji:'🌽',kcal:96,protein:3.4,fat:1.5,carbs:21},
+  {id:'pita',name:'פיתה',emoji:'🥙',kcal:275,protein:9.1,fat:1.2,carbs:56},
+];
+
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+let currentFood = null; // food shown in modal
+let scanner     = null;
+let scannerActive = false;
+let dailyLog = JSON.parse(localStorage.getItem('calorie_log') || '[]');
+// Reset log if it's from a different day
+const today = new Date().toDateString();
+if(dailyLog.length && dailyLog[0].date !== today) dailyLog = [];
+
+// ════════════════════════════════════════════════════════
+//  TABS & NAV
+// ════════════════════════════════════════════════════════
+function switchTab(name){
+  ['scan','search','log'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active', t===name);
+    document.getElementById('nav-'+t).classList.toggle('active', t===name);
+  });
+  if(name==='log') renderLog();
+  if(name==='search') renderLocalFoods();
+}
+
+// ════════════════════════════════════════════════════════
+//  SCANNER
+// ════════════════════════════════════════════════════════
+function toggleScanner(){
+  if(scannerActive){ stopScanner(); return; }
+  startScanner();
+}
+
+function startScanner(){
+  document.getElementById('scan-placeholder').style.display='none';
+  document.getElementById('reader').style.display='block';
+  document.getElementById('scan-toggle-btn').textContent='⛔ עצור סריקה';
+  scannerActive=true;
+
+  scanner = new Html5QrcodeScanner('reader',
+    {fps:10, qrbox:{width:250,height:140},
+     rememberLastUsedCamera:true,
+     formatsToSupport:[
+       Html5QrcodeSupportedFormats.EAN_13,
+       Html5QrcodeSupportedFormats.EAN_8,
+       Html5QrcodeSupportedFormats.UPC_A,
+       Html5QrcodeSupportedFormats.UPC_E,
+       Html5QrcodeSupportedFormats.CODE_128,
+       Html5QrcodeSupportedFormats.CODE_39,
+     ]},false);
+
+  scanner.render(async (barcode)=>{
+    scanner.pause(true);
+    await lookupBarcode(barcode);
+  }, ()=>{});
+}
+
+function stopScanner(){
+  if(scanner){ scanner.clear().catch(()=>{}); scanner=null; }
+  scannerActive=false;
+  document.getElementById('reader').style.display='none';
+  document.getElementById('scan-placeholder').style.display='block';
+  document.getElementById('scan-toggle-btn').textContent='📷 פתח מצלמה לסריקה';
+}
+
+async function lookupBarcode(barcode){
+  showToast(`🔍 מחפש ברקוד: ${barcode}`);
+  try{
+    const res = await fetch(
+      `https://world.openfoodfacts.net/api/v2/product/${barcode}?fields=product_name,brands,image_url,nutriments,nutrition_grades`,
+      {headers:{'User-Agent':'CalorieScanner/1.0'}}
+    );
+    const data = await res.json();
+    if(data.status===1 && data.product){
+      stopScanner();
+      openModal(offToFood(data.product, barcode));
+    } else {
+      showToast('❌ מוצר לא נמצא במסד הנתונים');
+      setTimeout(()=>{ if(scanner) scanner.resume(); },1500);
+    }
+  }catch(e){
+    showToast('⚠️ שגיאת רשת — בדוק חיבור');
+    setTimeout(()=>{ if(scanner) scanner.resume(); },2000);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  SEARCH
+// ════════════════════════════════════════════════════════
+async function doSearch(inputId){
+  const q = document.getElementById(inputId).value.trim();
+  if(!q) return;
+  const resEl = inputId==='scan-search'
+    ? document.getElementById('scan-results')
+    : document.getElementById('main-search-results');
+
+  // Local DB first
+  const localHits = LOCAL_DB.filter(f=>
+    f.name.includes(q) || (f.nameEn||'').toLowerCase().includes(q.toLowerCase())
+  );
+
+  resEl.innerHTML = `<div style="text-align:center;padding:20px"><span class="spinner"></span><p style="margin-top:8px;font-size:.85rem;color:var(--gray)">מחפש...</p></div>`;
+
+  let offHits=[];
+  try{
+    const r = await fetch(
+      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&json=1&fields=code,product_name,brands,image_url,nutriments,nutrition_grades&page_size=12&action=process`,
+      {headers:{'User-Agent':'CalorieScanner/1.0'}}
+    );
+    const d = await r.json();
+    offHits = (d.products||[])
+      .filter(p=>p.product_name && p.nutriments?.['energy-kcal_100g'])
+      .slice(0,8)
+      .map(p=>offToFood(p));
+  }catch(e){}
+
+  const all = [
+    ...localHits.map(f=>({...f,source:'local'})),
+    ...offHits.map(f=>({...f,source:'off'}))
+  ];
+
+  if(!all.length){
+    resEl.innerHTML='<p style="text-align:center;color:var(--gray);padding:20px">לא נמצאו תוצאות. נסה מילה אחרת.</p>';
+    return;
+  }
+  resEl.innerHTML = all.map(f=>foodCardHTML(f)).join('');
+}
+
+function offToFood(p, barcode=''){
+  const n = p.nutriments||{};
+  return {
+    id: barcode || p.code || Math.random().toString(36).slice(2),
+    name: p.product_name||'מוצר לא ידוע',
+    brand: p.brands||'',
+    image: p.image_url||'',
+    kcal: Math.round(n['energy-kcal_100g']||n['energy-kcal']||0),
+    protein: +(n.proteins_100g||n.protein_100g||0).toFixed(1),
+    fat: +(n.fat_100g||0).toFixed(1),
+    carbs: +(n.carbohydrates_100g||0).toFixed(1),
+    nutriscore: p.nutrition_grades||'',
+    emoji:'🛒', source:'off'
+  };
+}
+
+function foodCardHTML(f){
+  const calColor = f.kcal<100?'kcal-green':f.kcal<350?'kcal-yellow':'kcal-red';
+  const nutriBadge = f.nutriscore
+    ? `<span class="nutri-badge nutri-${f.nutriscore.toLowerCase()}">${f.nutriscore.toUpperCase()}</span> ` : '';
+  const imgEl = f.image
+    ? `<img src="${f.image}" class="food-card-img" onerror="this.outerHTML='<div class=food-card-img>${f.emoji}</div>'">`
+    : `<div class="food-card-img">${f.emoji||'🍽️'}</div>`;
+  return `<div class="food-card" onclick='openModal(${JSON.stringify(f)})'>
+    ${imgEl}
+    <div class="food-card-info">
+      <div class="food-card-name">${f.name}</div>
+      ${f.brand?`<div class="food-card-brand">${f.brand} ${nutriBadge}</div>`:''}
+      <div class="food-card-macros">
+        <span class="macro-chip cal-chip">🔥 ${f.kcal} קק"ל</span>
+        <span class="macro-chip pro-chip">💪 ${f.protein}g</span>
+        <span class="macro-chip fat-chip">🧈 ${f.fat}g</span>
+        <span class="macro-chip carb-chip">🌾 ${f.carbs}g</span>
+      </div>
+    </div>
+    <div class="kcal-big ${calColor}">${f.kcal}<br><span style="font-size:.65rem;font-weight:400">קק"ל/100g</span></div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  LOCAL FOODS RENDER
+// ════════════════════════════════════════════════════════
+function renderLocalFoods(){
+  const el = document.getElementById('local-foods-list');
+  if(el.innerHTML) return; // already rendered
+  el.innerHTML = LOCAL_DB.slice(0,12).map(f=>foodCardHTML({...f,source:'local'})).join('');
+}
+
+// ════════════════════════════════════════════════════════
+//  MODAL
+// ════════════════════════════════════════════════════════
+function openModal(food){
+  if(typeof food === 'string') food = JSON.parse(food);
+  currentFood = food;
+  document.getElementById('modal-name').textContent = food.name;
+  document.getElementById('modal-brand').textContent = food.brand||'';
+
+  const imgWrap = document.getElementById('modal-img-wrap');
+  if(food.image){
+    imgWrap.innerHTML=`<img src="${food.image}" class="modal-img" onerror="this.parentElement.innerHTML='<div class=modal-img-placeholder>${food.emoji||'🍽️'}</div>'">`;
+  } else {
+    imgWrap.innerHTML=`<div class="modal-img-placeholder">${food.emoji||'🍽️'}</div>`;
+  }
+
+  document.getElementById('modal-nutrients').innerHTML = `
+    <div class="nutri-card"><div class="val" style="color:var(--red)">${food.kcal}</div><div class="lbl">🔥 קלוריות</div></div>
+    <div class="nutri-card"><div class="val" style="color:var(--blue)">${food.protein}g</div><div class="lbl">💪 חלבון</div></div>
+    <div class="nutri-card"><div class="val" style="color:var(--yellow)">${food.fat}g</div><div class="lbl">🧈 שומן</div></div>
+    <div class="nutri-card"><div class="val" style="color:var(--green2)">${food.carbs}g</div><div class="lbl">🌾 פחמימות</div></div>
+  `;
+
+  document.getElementById('portion-input').value = 100;
+  calcPortion();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e){
+  if(!e || e.target===document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function calcPortion(){
+  const grams = parseFloat(document.getElementById('portion-input').value)||100;
+  if(!currentFood) return;
+  const mult = grams/100;
+  const cal = Math.round(currentFood.kcal * mult);
+  const pro = (currentFood.protein * mult).toFixed(1);
+  const fat = (currentFood.fat * mult).toFixed(1);
+  const carb = (currentFood.carbs * mult).toFixed(1);
+  document.getElementById('portion-result').textContent =
+    `ב-${grams}g: 🔥 ${cal} קק"ל · 💪 ${pro}g חלבון · 🧈 ${fat}g שומן · 🌾 ${carb}g פחמימות`;
+}
+
+// ════════════════════════════════════════════════════════
+//  DAILY LOG
+// ════════════════════════════════════════════════════════
+function addToLog(){
+  if(!currentFood) return;
+  const grams = parseFloat(document.getElementById('portion-input').value)||100;
+  const mult = grams/100;
+  dailyLog.push({
+    id: Date.now(),
+    date: today,
+    name: currentFood.name,
+    emoji: currentFood.emoji||'🍽️',
+    grams,
+    kcal:    Math.round(currentFood.kcal * mult),
+    protein: +(currentFood.protein * mult).toFixed(1),
+    fat:     +(currentFood.fat * mult).toFixed(1),
+    carbs:   +(currentFood.carbs * mult).toFixed(1),
+  });
+  saveLog();
+  closeModal();
+  updateHeaderCal();
+  showToast(`✅ נוסף: ${currentFood.name} (${grams}g)`);
+}
+
+function removeFromLog(id){
+  dailyLog = dailyLog.filter(e=>e.id!==id);
+  saveLog();
+  renderLog();
+  updateHeaderCal();
+}
+
+function clearLog(){
+  if(!dailyLog.length) return;
+  if(!confirm('למחוק את כל היומן של היום?')) return;
+  dailyLog=[];
+  saveLog();
+  renderLog();
+  updateHeaderCal();
+}
+
+function saveLog(){
+  localStorage.setItem('calorie_log', JSON.stringify(dailyLog));
+}
+
+function renderLog(){
+  const totalCal  = dailyLog.reduce((s,e)=>s+e.kcal,0);
+  const totalPro  = dailyLog.reduce((s,e)=>s+e.protein,0).toFixed(1);
+  const totalFat  = dailyLog.reduce((s,e)=>s+e.fat,0).toFixed(1);
+  const totalCarbs= dailyLog.reduce((s,e)=>s+e.carbs,0).toFixed(1);
+
+  document.getElementById('log-total-cal').textContent = totalCal;
+  document.getElementById('log-protein').textContent   = totalPro+'g';
+  document.getElementById('log-fat').textContent       = totalFat+'g';
+  document.getElementById('log-carbs').textContent     = totalCarbs+'g';
+
+  const list = document.getElementById('log-list');
+  if(!dailyLog.length){
+    list.innerHTML=`<div class="empty-log"><div style="font-size:3rem">🍽️</div>
+      <p style="margin-top:10px">לא הוספת אוכל עדיין</p>
+      <p style="font-size:.8rem;margin-top:6px">לחץ על 📷 סרוק או 🔍 חיפוש</p></div>`;
+    return;
+  }
+  list.innerHTML = [...dailyLog].reverse().map(e=>`
+    <div class="log-item">
+      <div class="log-item-emoji">${e.emoji}</div>
+      <div class="log-item-info">
+        <div class="log-item-name">${e.name}</div>
+        <div class="log-item-detail">${e.grams}g · 💪${e.protein}g · 🧈${e.fat}g · 🌾${e.carbs}g</div>
+      </div>
+      <div class="log-item-cal">${e.kcal} קק"ל</div>
+      <button class="log-del" onclick="removeFromLog(${e.id})">✕</button>
+    </div>`).join('');
+}
+
+function updateHeaderCal(){
+  const total = dailyLog.reduce((s,e)=>s+e.kcal,0);
+  document.getElementById('header-cal').textContent = total;
+}
+
+// ════════════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════════════
+function showToast(msg){
+  const t=document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2600);
+}
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+updateHeaderCal();
+</script>
+</body>
+</html>
